@@ -1,0 +1,44 @@
+# AWS playbook
+---
+- hosts: localhost
+  connection: local
+  gather_facts: False
+
+  vars:
+    key_name: terraform-demo
+    region: ap-south-1
+    image: ami-0123b531fc646552f
+    id: webserver
+    sec_group: sg-042d62f736acc6d5b
+    vpc_subnet_id: subnet-7bf1dd13
+
+  tasks:
+  - name: Webserver 
+    ec2:
+     key_name: "{{key_name}}"
+     instance_type: t2.micro
+     image: "{{image}}"
+     region: "{{ region }}"
+     wait: true
+     group: MySecurityGroup
+     count: 3
+     vpc_subnet_id: "{{vpc_subnet_id}}"
+     assign_public_ip: yes
+     instance_tags:
+       Name: "{{id}}"
+
+
+  - name: MYSQL Database Ec2 Server
+    ec2:
+     key_name: "{{key_name}}"
+     instance_type: t2.micro
+     image: "{{image}}"
+     region: "{{ region }}"
+     wait: true
+     group: MySecurityGroup
+     count: 1
+     vpc_subnet_id: "{{vpc_subnet_id}}"
+     assign_public_ip: yes
+     instance_tags:
+       Name: dbserver
+     

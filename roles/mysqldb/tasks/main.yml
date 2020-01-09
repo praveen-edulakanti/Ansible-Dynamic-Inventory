@@ -1,0 +1,75 @@
+---
+           - name:  Update APT package manager repositories cache
+             become: true
+             apt:
+               update_cache: yes
+
+           - name: Install mysql server package
+             apt: 
+               name: mysql-server 
+               state: present
+
+           - name: mysql configuration
+             lineinfile:
+               path: /etc/mysql/mysql.conf.d/mysqld.cnf
+               # The String to Search
+               regexp: "bind-address" 
+               # The String to Replace
+               line: "bind-address            = 0.0.0.0"
+               state: present
+               backup: yes
+           
+           - name: Start Mysql Service
+             service: 
+               name: mysql 
+               state: started 
+               enabled: true
+
+           - name: Install python Mysql package #required for mysql_db tasks 
+             apt: 
+               name: 
+                 - python-pymysql
+                 - python3-pymysql
+               state: latest
+
+           - name: "MySQL: mysql_user: Change Root password"
+             mysql_user:
+               name: root
+               password: "praveen123"
+               update_password: always     
+
+           - name: Create Application Database
+             mysql_db: 
+               name: demo
+               state: present
+
+           - name: Create Application DB User
+             mysql_user: 
+               name: "remoteusr"
+               password: "remotepwd" 
+               priv: "*.*:ALL"
+               host: '%'
+               state: present
+           
+           - name: Copy create table dump to tmp folder
+             copy: 
+               src: /root/dynamic-inventory/roles/mysqldb/files/users.sql 
+               dest: /tmp/users.sql
+               #remote_src: "yes"
+           
+           - name: Create table
+             become: yes
+             shell: cat /tmp/users.sql | mysql -u remoteusr -premotepwd demo
+
+             #- name: Import DB
+             #become: yes
+             #become_method: su
+             #mysql_db:
+             #state: import
+             #name: all
+             # target: /tmp/users.sql
+
+           - name: Restart Mysql Service
+             service: 
+               name: mysql 
+               state: restarted

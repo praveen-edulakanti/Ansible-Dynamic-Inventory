@@ -1,0 +1,10 @@
+---
+ - hosts: tag_Name_webserver
+   become: true
+   roles:
+     - apache2
+
+ - hosts: tag_Name_dbserver
+   become: true
+   roles:       
+     - mysqldb

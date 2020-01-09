@@ -1,0 +1,46 @@
+---
+           - name: Update APT package manager repositories cache
+             become: true
+             apt:
+               update_cache: yes
+           
+           - name: 1. install Apache
+             apt: name=apache2 state=present
+
+           - name: 2. install PHP module for Apache
+             apt: name=php state=present
+
+           - name: 3. Install PHP CLI
+             apt:
+               name: php-cli
+               state: latest  
+
+           - name: 4. Install PHP Mysql
+             apt:
+               name: php-mysql
+               state: latest    
+
+           - name: 5. start Apache
+             service: name=apache2 state=restarted enabled=yes
+
+           - name: 6. clean /var/www/html folder
+             shell: /bin/rm -rf /var/www/html/*
+             
+           - git:
+               repo: 'https://github.com/praveen-edulakanti/user.git'
+               dest: /var/www/html/
+               force: yes
+
+           - name: 7. DB Connection Configuration
+             become: yes
+             become_user: root
+             tags: appconfig
+             lineinfile:
+               path: /var/www/html/config.php
+               # The String to Search
+               regexp: "localhost"
+               # The String to Replace
+               line: "define('DB_SERVER', '13.232.166.81');"
+               state: present
+               backup: yes
+             

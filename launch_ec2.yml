@@ -1,0 +1,68 @@
+# AWS playbook
+---
+
+- hosts: localhost
+  connection: local
+  gather_facts: False
+
+  vars:
+    key_name: terraform-demo
+    region: ap-south-1
+    image: ami-0123b531fc646552f # https://cloud-images.ubuntu.com/locator/ec2/
+    id: "webserver"
+    sec_group: "{{ id }}-sec"
+
+  tasks:
+
+    - name: Facts
+      block:
+
+      - name: Get instances facts
+        ec2_instance_info:
+          region: "{{ region }}"
+        register: result
+
+      - name: Instances ID
+        debug:
+          msg: "ID: {{ item.instance_id }} - State: {{ item.state.name }} - Public DNS: {{ item.public_dns_name }}"
+        loop: "{{ result.instances }}"
+
+      tags: always
+
+
+    - name: Provisioning EC2 instances
+      block:
+
+      - name: Upload public key to AWS
+        ec2_key:
+          name: "{{ key_name }}"
+          region: "{{ region }}"
+
+      - name: Create security group
+        ec2_group:
+          name: "{{ sec_group }}"
+          description: "Sec group for app {{ id }}"
+          # vpc_id: 12345
+          region: "{{ region }}"
+          rules:
+            - proto: tcp
+              ports:
+                - 22
+              cidr_ip: 0.0.0.0/0
+              rule_desc: allow all on ssh port
+        register: result_sec_group
+
+      - name: Provision instance(s)
+        ec2:
+          key_name: "{{ key_name }}"
+          id: "{{ id }}"
+          group_id: "{{ result_sec_group.group_id }}"
+          image: "{{ image }}"
+          instance_type: t2.micro
+          region: "{{ region }}"
+          wait: true
+          count: 2
+          instance_tags:
+             Name: webserver
+
+      tags: ['never', 'create_ec2']
